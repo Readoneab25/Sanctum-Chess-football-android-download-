@@ -14,14 +14,14 @@ const FEATURES=[
  {id:'final',n:'06',k:'THE FINAL WHISTLE',title:'READY TO TAKE THE FIELD?',body:'The game is already waiting. The next brilliant move belongs to you.',metric:'THIS IS YOUR MATCH'}
 ];
 const CARDS=[
- {number:'01',icon:'↗',name:'POSITION WITH PURPOSE',text:'Turn-based movement, passes and shots that reward foresight.'},
+ {number:'01',icon:'➜',name:'POSITION WITH PURPOSE',text:'Turn-based movement, passes and shots that reward foresight.'},
  {number:'02',icon:'◎',name:'CHALLENGE THE CPU',text:'Standard and Pro opponents bring different tactical pressure.'},
  {number:'03',icon:'⇄',name:'PLAY TOGETHER',text:'Challenge someone beside you or share an online room code.'},
  {number:'04',icon:'✦',name:'MAKE IT YOURS',text:'Kits, formations, career and tournament progression.'},
  {number:'05',icon:'◌',name:'KEEP PLAYING OFFLINE',text:'Install the web game; cached assets support offline matches.'},
- {number:'06',icon:'⌁',name:'OPEN ON ANDROID',text:'Get the Chrome WebAPK installer or launch directly in your browser.'}
+ {number:'06',icon:'⌁',name:'OPEN ON ANDROID',text:'Download the Android app or launch the game directly in your browser.'}
 ];
-function Arrow({diagonal=false}){return <span aria-hidden="true">{diagonal?'↗':'→'}</span>}
+function Arrow({diagonal=false}){return <span aria-hidden="true">{diagonal?'⟶':'→'}</span>}
 function Button({href,children,kind='primary',external=false,download=false}){return <a className={'cta cta-'+kind} href={href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} download={download||undefined}>{children}<Arrow diagonal={external}/></a>}
 export default function App(){
  const progressRef=useRef(0);
@@ -122,7 +122,7 @@ export default function App(){
       <h2>THE PITCH<br/>IS <em>WAITING.</em></h2>
       <p>No tutorials before the excitement. Step into the match and start making the calls.</p>
       <div className="conversion-actions"><Button href={GAME} external>PLAY NOW</Button>{apk?<Button href={apk.url} kind="ghost" download>GET ANDROID APK</Button>:<span className="awaiting">Android installer coming soon</span>}</div>
-      {apk&&<p className="apk-disclosure">Android installer is a Chrome WebAPK ({apk.sizeBytes?Math.round(apk.sizeBytes/1024)+' KB':''}). First launch requires Chrome and connectivity; offline matches depend on cached game files.</p>}
+      {apk&&<p className="apk-disclosure">App size: 195 KB</p>}
       <div className="conversion-line"/>
       <a className="text-link contact" href={WA} target="_blank" rel="noopener noreferrer">CONTACT THE DEVELOPER ON WHATSAPP <Arrow diagonal/></a>
     </section>
