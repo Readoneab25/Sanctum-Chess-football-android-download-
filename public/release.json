@@ -1,0 +1,9 @@
+{
+  "status": "ready",
+  "version": "Android WebAPK test build",
+  "apkUrl": "/base.apk",
+  "sha256": "007e8c372a901dd107295172749439882cfca6e44f6a6187306d2e7926f5da09",
+  "sizeBytes": 195273,
+  "format": "Chrome WebAPK",
+  "note": "Requires Chrome and a first online visit; offline play depends on cached game assets."
+}
