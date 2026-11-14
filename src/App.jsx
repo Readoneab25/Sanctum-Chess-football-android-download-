@@ -3,7 +3,6 @@ import gsap from 'gsap';
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 const Scene3D=lazy(()=>import('./Scene3D.jsx'));
-const GAME='https://sanctum-chess-football.pages.dev/';
 const WA='https://wa.me/2349138907913?text=Hello%2C%20I%20discovered%20Sanctum%20Chess%20Football%20and%20would%20like%20to%20contact%20the%20developer.';
 const FEATURES=[
  {id:'movement',n:'01',k:'THE IDEA',title:'CHESS THINKING. FOOTBALL INSTINCT.',body:'A pitch where space is earned, not given. Position your players and build the move before the moment arrives.',metric:'TACTICS IN EVERY TURN'},
@@ -19,7 +18,7 @@ const CARDS=[
  {number:'03',icon:'⇄',name:'PLAY TOGETHER',text:'Challenge someone beside you or share an online room code.'},
  {number:'04',icon:'✦',name:'MAKE IT YOURS',text:'Kits, formations, career and tournament progression.'},
  {number:'05',icon:'◌',name:'KEEP PLAYING OFFLINE',text:'Install the web game; cached assets support offline matches.'},
- {number:'06',icon:'⌁',name:'OPEN ON ANDROID',text:'Download the Android app or launch the game directly in your browser.'}
+ {number:'06',icon:'⌁',name:'OPEN ON ANDROID',text:'Download the Android app. Connect once to load game files; cached matches can then work offline.'}
 ];
 function Arrow({diagonal=false}){return <span aria-hidden="true">{diagonal?'⟶':'→'}</span>}
 function Button({href,children,kind='primary',external=false,download=false}){return <a className={'cta cta-'+kind} href={href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} download={download||undefined}>{children}<Arrow diagonal={external}/></a>}
@@ -69,10 +68,10 @@ export default function App(){
  return <>
   <header className="topbar">
     <a className="brand" href="#main" aria-label="Sanctum Chess Football home" onClick={e=>{e.preventDefault();jump(0)}}>
-     <span className="brand-mark"><span>SCF</span></span><span className="brand-words">SANCTUM<span>CHESS FOOTBALL</span></span>
+     <span className="brand-mark"><img src="/assets/game-logo.svg" alt="" width="42" height="42"/></span><span className="brand-words">SANCTUM<span>CHESS FOOTBALL</span></span>
     </a>
     <span className="nav-edition">THE TACTICAL FOOTBALL EXPERIENCE <i/></span>
-    <div className="nav-actions"><a href="#features">EXPLORE <Arrow/></a><Button href={GAME} external>PLAY NOW</Button></div>
+    <div className="nav-actions"><a href="#features">EXPLORE <Arrow/></a><Button href="#download">GET THE APP</Button></div>
   </header>
   <main id="main">
     <section className="journey" id="journey" aria-label="Interactive game showcase">
@@ -96,12 +95,12 @@ export default function App(){
           <h1>SANCTUM<br/><em>CHESS</em><br/>FOOTBALL<span className="fullstop">.</span></h1>
           <p>FOOTBALL. THINKING. GLORY.</p>
           <span className="hero-footnote">YOUR PITCH. YOUR RULES. EVERY MOVE MATTERS.</span>
-          <a className="hero-play" href={GAME} target="_blank" rel="noopener noreferrer">ENTER THE GAME <Arrow diagonal/></a>
+          <a className="hero-play" href="#download">GET THE ANDROID APP <Arrow/></a>
         </div>
         <div className={'chapter-copy '+(chapter>0?'visible':'hidden')+(chapter===6?' ending-copy':'')} aria-live="polite">
           {title&&<><span className="section-label"><span className="label-line"/>{title.n} / {title.k}</span>
            <h2>{title.title}</h2><p>{title.body}</p><div className="chapter-metric">{title.metric}</div>
-           {chapter===6&&<div className="end-actions"><Button href={GAME} external>PLAY NOW</Button>{apk&&<Button href={apk.url} kind="ghost" download>DOWNLOAD APK</Button>}<a href="#features" className="text-link">EXPLORE FEATURES <Arrow/></a></div>}
+           {chapter===6&&<div className="end-actions">{apk&&<Button href={apk.url} download>DOWNLOAD APK</Button>}<a href="#download" className="text-link">INSTALL DETAILS <Arrow/></a></div>}
           </>}
         </div>
         <div className="chapter-index" aria-hidden="true"><div className="chapter-index-line"/><span>01—07 / THE GAME IN MOTION</span></div>
@@ -117,16 +116,16 @@ export default function App(){
       <div className="feature-top"><div><span className="overline">BEYOND THE WHISTLE / 06 FEATURES</span><h2>THE GAME<br/><em>BEHIND THE GAME.</em></h2></div><p>Every match is a story of decisions. Choose your opponent, build a side and take the space they leave behind.</p></div>
       <div className="feature-grid">{CARDS.map(f=><article className="feature-tile" key={f.number}><div className="tile-top"><span>{f.number} / 06</span><span className="tile-symbol" aria-hidden="true">{f.icon}</span></div><h3>{f.name}</h3><p>{f.text}</p></article>)}</div>
     </section>
-    <section className="conversion" id="play" aria-label="Play or download the game">
+    <section className="conversion" id="download" aria-label="Download the Android app">
       <div className="conversion-halo" aria-hidden="true"/><span className="overline">THE NEXT MOVE IS YOURS</span>
       <h2>THE PITCH<br/>IS <em>WAITING.</em></h2>
       <p>No tutorials before the excitement. Step into the match and start making the calls.</p>
-      <div className="conversion-actions"><Button href={GAME} external>PLAY NOW</Button>{apk?<Button href={apk.url} kind="ghost" download>GET ANDROID APK</Button>:<span className="awaiting">Android installer coming soon</span>}</div>
-      {apk&&<p className="apk-disclosure">App size: 195 KB</p>}
+      <div className="conversion-actions">{apk?<Button href={apk.url} download>DOWNLOAD ANDROID APK</Button>:<span className="awaiting">Android installer coming soon</span>}</div>
+      {apk&&<p className="apk-disclosure">App size: 195 KB. The first time you open the app, connect to the internet using mobile data or Wi-Fi so the game files can load. Once they are cached, you can play offline.</p>}
       <div className="conversion-line"/>
       <a className="text-link contact" href={WA} target="_blank" rel="noopener noreferrer">CONTACT THE DEVELOPER ON WHATSAPP <Arrow diagonal/></a>
     </section>
   </main>
-  <footer className="footer"><span>© {new Date().getFullYear()} SANCTUM CHESS FOOTBALL</span><span>BUILT FOR THE BEAUTIFUL GAME. MADE FOR THINKERS.</span><div><a href={GAME} target="_blank" rel="noopener noreferrer">GAME <Arrow diagonal/></a><a href={WA} target="_blank" rel="noopener noreferrer">CONTACT <Arrow diagonal/></a></div></footer>
+  <footer className="footer"><span>© {new Date().getFullYear()} SANCTUM CHESS FOOTBALL</span><span>BUILT FOR THE BEAUTIFUL GAME. MADE FOR THINKERS.</span><div><a href="#download">DOWNLOAD APK <Arrow/></a><a href={WA} target="_blank" rel="noopener noreferrer">CONTACT <Arrow diagonal/></a></div></footer>
  </>;
 }
