@@ -1,5 +1,6 @@
 import React,{useEffect,useRef} from 'react';
 import * as THREE from 'three';
+import {sampleCamera,clamp as progressClamp,mix as progressMix,reveal,shotProgress,shotImpact,pulse} from './sceneTimeline.js';
 const C={grass:0x0b3b2a,white:0xc6f6dc,teal:0x37e5c2,gold:0xe4b75b,dark:0x06120e};
 const L=(a,b,t)=>a+(b-a)*t;const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
 const ease=x=>{let t=clamp(x);return t*t*(3-2*t)};
@@ -59,7 +60,7 @@ function stadium(scene,isMobile){
   const board=mesh(scene,new THREE.BoxGeometry(.12,.55,2.7),new THREE.MeshBasicMaterial({color:z%2?0x70a57a:0xc3bf70}),sign*10,.35,z);
  }
  // A small instanced crowd adds a distant stadium glow; it is reduced on phones.
- const num=isMobile?140:410,geom=new THREE.SphereGeometry(.035,5,4);
+ const num=isMobile?65:320,geom=new THREE.SphereGeometry(.035,5,4);
  const crowd=new THREE.InstancedMesh(geom,new THREE.MeshBasicMaterial({color:0xc2efc6}),num);
  const dummy=new THREE.Object3D(),color=new THREE.Color();
  for(let i=0;i<num;i++){
@@ -74,10 +75,10 @@ function stadium(scene,isMobile){
 }
 function makePlayer(scene,{team,number,x,z,isKeeper=false}){
  const p=new THREE.Group();scene.add(p);
- const main=material(team==='teal'?0x4deac5:0xe7bd62,{roughness:.4});
+ const main=material(team==='teal'?0x9bd2bc:0xcbb88b,{roughness:.49});
  const skin=material(team==='teal'?0x94634e:0xb67c58);
  const short=material(0x152b23);
- const sock=material(team==='teal'?0x4deac5:0xe7bd62);
+ const sock=material(team==='teal'?0x9bd2bc:0xcbb88b);
  const dark=new THREE.MeshBasicMaterial({color:0x05120c});
  const torso=mesh(p,new THREE.CylinderGeometry(.39,.29,.82,9),main,0,1.1,0);
  mesh(p,new THREE.SphereGeometry(.295,12,9),skin,0,1.81,0);
@@ -124,70 +125,134 @@ function makeEffects(scene){
  const glow=mesh(node,new THREE.PlaneGeometry(7,4),new THREE.MeshBasicMaterial({color:0xc9ff75,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}),0,2,-13.35);
  return {node,route,target,trajectory,goalFlash,glow};
 }
+function atmosphere(scene,mobile){
+ const count=mobile?36:110;const positions=new Float32Array(count*3);
+ for(let i=0;i<count;i++){
+  positions[i*3]=(Math.sin(i*26.64)*.5+.5)*32-16;
+  positions[i*3+1]=2+(Math.sin(i*45.19)*.5+.5)*19;
+  positions[i*3+2]=(Math.sin(i*13.71)*.5+.5)*39-19.5;
+ }
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+ const material=new THREE.PointsMaterial({color:0xece3b9,size:mobile?.05:.095,transparent:true,opacity:.34,depthWrite:false,blending:THREE.AdditiveBlending});
+ const particles=new THREE.Points(geometry,material);scene.add(particles);
+ return particles;
+}
+function trophy(scene){
+ const group=new THREE.Group();scene.add(group);
+ const gold=new THREE.MeshStandardMaterial({color:0xc8a96e,metalness:.75,roughness:.2,transparent:true,opacity:0});
+ const pedestal=new THREE.MeshStandardMaterial({color:0x122d22,roughness:.32,metalness:.45,transparent:true,opacity:0});
+ mesh(group,new THREE.CylinderGeometry(.62,.77,.25,24),pedestal,0,.15,0);
+ mesh(group,new THREE.CylinderGeometry(.4,.5,.7,24),pedestal,0,.59,0);
+ mesh(group,new THREE.CylinderGeometry(.6,.35,.2,24),gold,0,1.02,0);
+ const bowl=mesh(group,new THREE.SphereGeometry(.91,22,16,0,Math.PI*2,0,Math.PI*.60),gold,0,2.05,0);
+ mesh(group,new THREE.CylinderGeometry(.15,.31,.8,20),gold,0,1.4,0);
+ for(const sign of [-1,1]){
+  const handle=mesh(group,new THREE.TorusGeometry(.57,.085,10,32,Math.PI*1.24),gold,sign*.79,2.05,0);
+  handle.rotation.z=sign*Math.PI*.58;
+ }
+ group.position.set(0,0,-.6);
+ return {group,gold,pedestal};
+}
+function tacticalArcs(scene){
+ const group=new THREE.Group();scene.add(group);
+ const ribbons=[];
+ for(let i=0;i<3;i++){
+  const x=i===0?-5:i===1?0:5;
+  const curve=new THREE.QuadraticBezierCurve3(
+   new THREE.Vector3(x,.18,8),
+   new THREE.Vector3(x*.5,2.8-i*.4,-.5),
+   new THREE.Vector3(x*.7,.18,-8)
+  );
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(36)),new THREE.LineBasicMaterial({color:i===1?0xc1ddb7:0xe2d3a4,transparent:true,opacity:0,depthWrite:false}));
+  group.add(line);ribbons.push(line);
+ }
+ return {group,ribbons};
+}
 const initial=[
  [-4,7],[-1,6],[3,6],[-5,2],[-1,1.4],[3,1.5],[-3,10],[4,10], // gold
  [-5,-7],[-1,-7],[4,-6],[-5,-2],[0,-2],[4,-2],[-3,-10],[4,-10] // teal
 ];
-const cameraKeys=[
- {pos:[6,5.5,17],at:[0,2.1,8]},
- {pos:[18,21,23],at:[0,0,0]},
- {pos:[8,8.5,13],at:[-1,1,5]},
- {pos:[6,12,19],at:[0,1,-6]},
- {pos:[5.7,5.5,11],at:[-1,1,3]},
- {pos:[17,19,17],at:[0,1,0]},
- {pos:[2,17,23],at:[0,0,-3]}
-];
-function cameraSample(p){
- const i=Math.min(5,Math.floor(p)),t=ease(p-i),a=cameraKeys[i],b=cameraKeys[i+1];
- return {pos:a.pos.map((x,j)=>L(x,b.pos[j],t)),at:a.at.map((x,j)=>L(x,b.at[j],t))};
-}
 function animateWorld(p,time,items,mobile,reduced){
- const {players,ball,pawn,effects,cam,renderer,lights}=items;
- const k=cameraSample(p);
- cam.position.lerp(new THREE.Vector3(...k.pos),reduced?1:.085);
- const aim=new THREE.Vector3(...k.at);items.look.lerp(aim,reduced?1:.085);
+ const {players,ball,pawn,effects,cam,renderer,particles,award,arcs,pitch}=items;
+ const k=sampleCamera(p,mobile);
+ // Interpolate the camera only (never the underlying play timeline).
+ const t=reduced?1:mobile?.17:.12;
+ cam.position.lerp(items.cameraPosition.set(...k.pos),t);
+ items.look.lerp(items.cameraTarget.set(...k.at),t);
+ if(!reduced){
+   const breathing=.022*Math.sin(time*.00062);
+   cam.position.y+=breathing;
+ }
  cam.lookAt(items.look);
- const hero=1-range(p,.05,1.08);
- pawn.group.visible=hero>.025;pawn.group.position.set(0,2.1,8);pawn.group.rotation.y=-time*.16;pawn.group.scale.setScalar(.85*hero);
- pawn.mat.opacity=hero*.9;
- const heroBall=range(p,0,.7),go=time*.00025;
- if(p<2.15){
-  ball.position.set(L(.1,-1,range(p,.2,1.5)),L(3.2,.6,range(p,.2,1.4)),L(8,5,range(p,.3,1.8)));
- }else if(p<3.6){
-  const t=range(p,2.1,3.4);
-  ball.position.set(L(-1,0,t),.55+Math.sin(t*Math.PI)*1.8,L(4,-13,t));
+ // Hero: the isolated football enters view while the chess-inspired pawn recedes.
+ const hero=1-reveal(p,.23,.96);
+ pawn.group.visible=hero>.004;
+ pawn.group.position.set(mobile?-1.15:0,2.1,8);
+ pawn.group.rotation.y=reduced?p*.32:time*.00012;
+ pawn.group.scale.setScalar(.75*hero);
+ pawn.mat.opacity=hero*.84;
+ // Pitch is unveiled in unison with the first camera pullback.
+ const pitchIn=reveal(p,.26,.95);
+ for(const pl of players){
+   pl.visible=p>.28;
+   const opacity=pl.userData.select.material;
+   opacity.opacity=0;
+ }
+ // Real ball positions map directly to scroll so reversing works.
+ if(p<1.95){
+  const t=reveal(p,.05,.65);
+  ball.position.set(L(0,-4,t),L(mobile?2.65:3.2,.56,t),L(8,5,t));
+ }else if(p<2.7){
+  const t=reveal(p,1.96,2.55);
+  ball.position.set(L(-4,-1,t),.54+Math.sin(t*Math.PI)*1.2,L(5,-3,t));
+ }else if(p<3.75){
+  const q=shotProgress(p);
+  ball.position.set(L(-1,.5,q),.53+Math.sin(q*Math.PI)*2.05,L(-3,-13.4,q));
  }else{
-  ball.position.set(0,L(.55,1.3,range(p,3.65,4.15)),L(-13,-12.7,range(p,3.65,4.1)));
+  ball.position.set(0,.52,L(-13.4,-10,reveal(p,3.8,4.8)));
  }
- ball.scale.setScalar(L(1.95,.66,range(p,.08,1.25)));
- ball.rotation.set(time*.0001+p*2.5,p*.75,time*.00025+p*1.3);
+ const size=reveal(p,.15,.85);
+ ball.scale.setScalar(L(mobile?1.82:2.25,.83,size));
+ const ballRotation=p*2.4;
+ ball.rotation.set(ballRotation*.55,ballRotation*.35,ballRotation);
  for(let i=0;i<players.length;i++){
-  const pl=players[i],ud=pl.userData;
-  const variant=range(p,4.65,5.35),shapeX=i%8<4?-.55:.38;
-  const targetX=ud.baseX+(i%4-1.5)*variant*.55;
-  const targetZ=ud.baseZ+(i%3-1)*variant*1.0;
-  pl.position.x=L(pl.position.x,targetX,reduced?1:.11);
-  pl.position.z=L(pl.position.z,targetZ,reduced?1:.11);
-  const emphasis=p>1.3&&p<2.7&&i===3?range(p,1.3,1.85)*(1-range(p,2.36,2.7)):0;
-  pl.userData.select.material.opacity=emphasis*.90;
-  pl.userData.pin.material.opacity=emphasis;
-  pl.userData.pin.position.y=2.8+(reduced?0:Math.sin(time*.003)*.08);
-  const kit=range(p,3.7,4.45);
-  if(ud.team==='gold')ud.main.color.setRGB(L(.91,.26,kit),L(.73,.83,kit),L(.38,.74,kit));
-  pl.rotation.y=L(pl.rotation.y,(i%3-.7)*range(p,3.65,4.55)+((i%2===0)?.12:-.1),.07);
-  pl.scale.setScalar(1+(i===3?range(p,3.74,4.25)*(1-range(p,4.5,4.8))*.38:0));
+  const pl=players[i],u=pl.userData;
+  const formation=reveal(p,4.53,5.45);
+  const targetX=u.baseX+(i%4-1.5)*formation*.72;
+  const targetZ=u.baseZ+(i%3-1)*formation*1.25;
+  pl.position.x=targetX;pl.position.z=targetZ;
+  const selected=pulse(p,1.15,1.57,1.99,2.42)*(i===3?1:0);
+  u.select.material.opacity=selected*.82;
+  u.pin.material.opacity=selected;
+  u.pin.position.y=2.78+(reduced?0:Math.sin(time*.0025)*.055);
+  const kit=reveal(p,3.63,4.43);
+  if(u.team==='gold')u.main.color.setRGB(L(.80,.17,kit),L(.71,.46,kit),L(.55,.36,kit));
+  pl.rotation.y=(i%3-.7)*reveal(p,3.6,4.42);
+  const kitZoom=(i===3?pulse(p,3.72,4.07,4.50,4.86):0);
+  pl.scale.setScalar(1+kitZoom*.38);
  }
- const c=effects.route.material,alpha=range(p,1.5,1.94)*(1-range(p,2.4,2.7));
- c.opacity=alpha*.8;
+ const route=pulse(p,1.54,1.94,2.38,2.72);
+ effects.route.material.opacity=route*.8;
  effects.route.position.set(-5,.11,2);
- effects.route.scale.setScalar(1+Math.sin(time*.003)*.14);
- effects.target.material.opacity=range(p,2.5,3)*(1-range(p,3.4,3.8))*.9;
+ effects.route.scale.setScalar(1+(reduced?0:Math.sin(time*.002)*.09));
+ effects.target.material.opacity=pulse(p,2.67,3.04,3.37,3.76)*.9;
  effects.target.position.set(0,.12,-11);
- effects.trajectory.material.opacity=range(p,2.55,3.02)*(1-range(p,3.45,3.85))*.85;
- const flash=range(p,3.18,3.56)*(1-range(p,3.7,4.06));
- effects.goalFlash.intensity=flash*28;
- effects.glow.material.opacity=flash*.36;
- renderer.toneMappingExposure=mobile?1.27:1.42;
+ effects.trajectory.material.opacity=pulse(p,2.67,3.1,3.35,3.79)*.8;
+ const impact=shotImpact(p);
+ effects.goalFlash.intensity=impact*(mobile?13:20);
+ effects.glow.material.opacity=impact*.28;
+ // Reacting goal net + gold particles at the scoring moment.
+ effects.glow.scale.z=1+impact*.8;
+ particles.material.opacity=mobile?.14:.26;
+ arcs.ribbons.forEach((r,i)=>{r.material.opacity=pulse(p,4.75,5.12,5.6,5.92)*(.30+i*.11)});
+ const prize=reveal(p,5.47,5.98);
+ award.group.visible=prize>.006;
+ award.group.position.y=prize*.55;
+ award.group.rotation.y=p*.17+(reduced?0:time*.00013);
+ award.group.scale.setScalar(prize*(mobile?.89:1.14));
+ award.gold.opacity=prize;
+ award.pedestal.opacity=prize;
+ renderer.toneMappingExposure=mobile?1.23:1.35;
 }
 export default function Scene3D({progressRef,reducedMotion,onUnavailable}){
  const container=useRef(null);
@@ -195,11 +260,12 @@ export default function Scene3D({progressRef,reducedMotion,onUnavailable}){
  values.current={reducedMotion,onUnavailable};
  useEffect(()=>{
   const host=container.current;if(!host)return;
-  const mobile=window.innerWidth<720||navigator.hardwareConcurrency<=4;
+  const mobile=window.innerWidth<760||navigator.hardwareConcurrency<=4;
+  const veryLowEnd=window.innerWidth<400&&(navigator.deviceMemory||4)<=2;
   let renderer,scene,cam,raf=0,observer,resizeObserver,disposed=false,active=true;
   try{renderer=new THREE.WebGLRenderer({antialias:!mobile,alpha:true,powerPreference:'default',stencil:false});}
   catch(err){values.current.onUnavailable?.();return}
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mobile?1.15:1.65));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,veryLowEnd?1:mobile?1.35:1.7));
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.4;
   renderer.setClearColor(0x071611,1);host.appendChild(renderer.domElement);
   renderer.domElement.setAttribute('aria-hidden','true');
@@ -212,20 +278,21 @@ export default function Scene3D({progressRef,reducedMotion,onUnavailable}){
   stadium(scene,mobile);
   const players=initial.map(([x,z],i)=>makePlayer(scene,{team:i<8?'gold':'teal',number:i%8+1,x,z,isKeeper:i===7||i===15}));
   const ball=makeBall(scene),pawn=makePawn(scene),effects=makeEffects(scene);
-  const state={players,ball,pawn,effects,cam,renderer,look:new THREE.Vector3(0,2,8)};
+  const particles=atmosphere(scene,mobile),award=trophy(scene),arcs=tacticalArcs(scene);
+  const state={players,ball,pawn,effects,cam,renderer,particles,award,arcs,look:new THREE.Vector3(0,2,8),cameraPosition:new THREE.Vector3(),cameraTarget:new THREE.Vector3()};
   function resize(){
    if(disposed)return;const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
    renderer.setSize(w,h,false);
-   cam.aspect=w/h;cam.fov=w<650?56:47;cam.updateProjectionMatrix();
+   cam.aspect=w/h;cam.fov=w<650?47:44;cam.updateProjectionMatrix();
   }
   resize();resizeObserver=new ResizeObserver(resize);resizeObserver.observe(host);
   observer=new IntersectionObserver(([e])=>{active=e.isIntersecting},{rootMargin:'100px'});observer.observe(host);
-  const clock=new THREE.Clock();let previous=0;
+  let previous=0;let rafBudget=mobile&&veryLowEnd?40:mobile?17:15;
   function animate(now){
    if(disposed)return;
    raf=requestAnimationFrame(animate);
    if(!active||document.hidden)return;
-   if(mobile&&now-previous<30)return;previous=now;
+   if(now-previous<rafBudget)return;previous=now;
    const p=clamp(progressRef.current,0,6);
    animateWorld(p,now,state,mobile,values.current.reducedMotion);
    renderer.render(scene,cam);
