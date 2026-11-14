@@ -3,5 +3,13 @@
   "version": null,
   "apkUrl": null,
   "sha256": null,
-  "sizeBytes": null
+  "sizeBytes": null,
+  "candidate": {
+    "filename": "base.apk",
+    "type": "Chrome WebAPK wrapper for https://sanctum-chess-football.pages.dev/",
+    "sizeBytes": 195284,
+    "sha256": "007e8c372a901dd107295172749439882cfca6e44f6a6187306d2e7926f5da09",
+    "signing": "Google Chrome WebAPK",
+    "verifiedInstaller": false
+  }
 }
