@@ -20,6 +20,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate site
         run: npm run check
+      - name: Verify deterministic portrait camera and scroll animation
+        run: node tests/camera-check.mjs
       - name: Build production assets
         run: npm run build
       - name: Install browser runner
