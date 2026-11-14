@@ -34,14 +34,16 @@ function stadium(scene,isMobile){
  rect(pitch,-5.35,13.5,5.35,8.1);rect(pitch,-2.8,13.5,2.8,11.25);
  for(const z of [-9.35,9.35])mesh(pitch,new THREE.SphereGeometry(.12,10,8),new THREE.MeshBasicMaterial({color:0xe4ffff}),0,.08,z);
  const goalMat=new THREE.MeshStandardMaterial({color:0xeaffec,metalness:.8,roughness:.2,emissive:0x6effac,emissiveIntensity:.23});
+ const nets=[];
  for(const sign of [-1,1]){
   const gz=sign*13.56;
   for(const x of [-3.1,3.1])mesh(pitch,new THREE.CylinderGeometry(.095,.095,2.1,10),goalMat,x,1.07,gz);
   const bar=mesh(pitch,new THREE.CylinderGeometry(.09,.09,6.4,10),goalMat,0,2.12,gz);bar.rotation.z=Math.PI/2;
-  const back=sign*(13.56+1.1);
-  for(const x of [-3.1,3.1])line(pitch,[[x,2.12,gz],[x,1.7,back],[x,.14,back]],0xa3ffdc,.45);
-  for(let x=-3.1;x<=3.1;x+=.55)line(pitch,[[x,2.1,gz],[x,1.7,back]],0xa6e6d5,.16);
-  for(let y=.25;y<=1.9;y+=.28)line(pitch,[[-3.1,y,back],[3.1,y,back]],0xa6e6d5,.13);
+  const net=new THREE.Group();net.position.z=gz;pitch.add(net);nets.push(net);
+  const depth=sign*1.1;
+  for(const x of [-3.1,3.1])line(net,[[x,2.12,0],[x,1.7,depth],[x,.14,depth]],0xa3ffdc,.45);
+  for(let x=-3.1;x<=3.1;x+=.55)line(net,[[x,2.1,0],[x,1.7,depth]],0xa6e6d5,.16);
+  for(let y=.25;y<=1.9;y+=.28)line(net,[[-3.1,y,depth],[3.1,y,depth]],0xa6e6d5,.13);
  }
  const trim=material(0x09271f,{metalness:.27,roughness:.8});
  // The layered edges and rows create architectural scale without large models.
@@ -71,7 +73,7 @@ function stadium(scene,isMobile){
   color.set(i%4===0?0xb1eeae:i%4===1?0x91c6a9:i%4===2?0xebc77b:0x4d987d);crowd.setColorAt(i,color);
  }
  crowd.instanceMatrix.needsUpdate=true;scene.add(crowd);
- return {pitch,goalMat};
+ return {pitch,goalMat,nets};
 }
 function makePlayer(scene,{team,number,x,z,isKeeper=false}){
  const p=new THREE.Group();scene.add(p);
@@ -168,12 +170,31 @@ function tacticalArcs(scene){
  }
  return {group,ribbons};
 }
+function holograms(scene,mobile){
+ const group=new THREE.Group();scene.add(group);
+ const cards=[];
+ const textCanvas=(title,subtitle)=>{
+  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=180;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='rgba(7,34,25,.88)';ctx.fillRect(0,0,512,180);
+  ctx.strokeStyle='rgba(169,213,167,.65)';ctx.lineWidth=2;ctx.strokeRect(4,4,504,172);
+  ctx.fillStyle='#d7e7cf';ctx.font='bold 43px sans-serif';ctx.textAlign='center';ctx.fillText(title,256,88);
+  ctx.fillStyle='#8fbfa9';ctx.font='23px sans-serif';ctx.fillText(subtitle,256,132);
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
+ };
+ for(const item of [{x:-4,z:1,title:'LOCAL',desc:'PASS & PLAY'},{x:4,z:-4,title:'ONLINE',desc:'ROOM CODE MATCHES'}]){
+  const mat=new THREE.MeshBasicMaterial({map:textCanvas(item.title,item.desc),side:THREE.DoubleSide,transparent:true,opacity:0,depthWrite:false});
+  const plane=mesh(group,new THREE.PlaneGeometry(mobile?5.1:6.7,mobile?1.8:2.4),mat,item.x,4,item.z);
+  plane.rotation.y=item.x<0?.15:-.15;cards.push(plane);
+ }
+ return cards;
+}
 const initial=[
  [-4,7],[-1,6],[3,6],[-5,2],[-1,1.4],[3,1.5],[-3,10],[4,10], // gold
  [-5,-7],[-1,-7],[4,-6],[-5,-2],[0,-2],[4,-2],[-3,-10],[4,-10] // teal
 ];
 function animateWorld(p,time,items,mobile,reduced){
- const {players,ball,pawn,effects,cam,renderer,particles,award,arcs,pitch}=items;
+ const {players,ball,pawn,effects,cam,renderer,particles,award,arcs,nets,modeCards}=items;
  const k=sampleCamera(p,mobile);
  // Interpolate the camera only (never the underlying play timeline).
  const t=reduced?1:mobile?.17:.12;
@@ -241,10 +262,18 @@ function animateWorld(p,time,items,mobile,reduced){
  const impact=shotImpact(p);
  effects.goalFlash.intensity=impact*(mobile?13:20);
  effects.glow.material.opacity=impact*.28;
+ // Flexible net visually stretches at the exact goal impact and returns on rewind.
+ nets[0].scale.z=1+impact*(.34+.12*Math.sin(p*27));
  // Reacting goal net + gold particles at the scoring moment.
  effects.glow.scale.z=1+impact*.8;
  particles.material.opacity=mobile?.14:.26;
  arcs.ribbons.forEach((r,i)=>{r.material.opacity=pulse(p,4.75,5.12,5.6,5.92)*(.30+i*.11)});
+ modeCards.forEach((card,i)=>{
+  const lift=pulse(p,4.85+i*.09,5.15+i*.09,5.60,5.92);
+  card.material.opacity=lift*.84;
+  card.position.y=4+lift*.4;
+  card.scale.setScalar(.75+lift*.25);
+ });
  const prize=reveal(p,5.47,5.98);
  award.group.visible=prize>.006;
  award.group.position.y=prize*.55;
@@ -275,11 +304,11 @@ export default function Scene3D({progressRef,reducedMotion,onUnavailable}){
   const directional=new THREE.DirectionalLight(0xffe0a2,3.15);directional.position.set(-9,19,12);scene.add(directional);
   const fill=new THREE.PointLight(0x4fdbc0,35,37);fill.position.set(9,11,-9);scene.add(fill);
   const glow=new THREE.PointLight(0xeacb83,20,26);glow.position.set(-9,7,12);scene.add(glow);
-  stadium(scene,mobile);
+  const stadiumElements=stadium(scene,mobile);
   const players=initial.map(([x,z],i)=>makePlayer(scene,{team:i<8?'gold':'teal',number:i%8+1,x,z,isKeeper:i===7||i===15}));
   const ball=makeBall(scene),pawn=makePawn(scene),effects=makeEffects(scene);
-  const particles=atmosphere(scene,mobile),award=trophy(scene),arcs=tacticalArcs(scene);
-  const state={players,ball,pawn,effects,cam,renderer,particles,award,arcs,look:new THREE.Vector3(0,2,8),cameraPosition:new THREE.Vector3(),cameraTarget:new THREE.Vector3()};
+  const particles=atmosphere(scene,mobile),award=trophy(scene),arcs=tacticalArcs(scene),modeCards=holograms(scene,mobile);
+  const state={players,ball,pawn,effects,cam,renderer,particles,award,arcs,nets:stadiumElements.nets,modeCards,look:new THREE.Vector3(0,2,8),cameraPosition:new THREE.Vector3(),cameraTarget:new THREE.Vector3()};
   function resize(){
    if(disposed)return;const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
    renderer.setSize(w,h,false);
@@ -300,7 +329,7 @@ export default function Scene3D({progressRef,reducedMotion,onUnavailable}){
   raf=requestAnimationFrame(animate);
   return ()=>{
    disposed=true;cancelAnimationFrame(raf);observer?.disconnect();resizeObserver?.disconnect();
-   scene.traverse(o=>{o.geometry?.dispose?.();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>m.dispose?.())}});
+   scene.traverse(o=>{o.geometry?.dispose?.();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{m.map?.dispose?.();m.dispose?.()})}});
    renderer.dispose();renderer.domElement.remove();
   };
  },[progressRef]);
