@@ -15,8 +15,8 @@ let browser;
 try{
  await ready();
  browser=await chromium.launch({headless:true,args:['--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--disable-dev-shm-usage']});
- for(const width of [360,390,768,1365]){
-  const page=await browser.newPage({viewport:{width,height:800},deviceScaleFactor:1,isMobile:width<500,hasTouch:width<500});
+ for(const width of [320,360,390,430,768,1365]){
+  const page=await browser.newPage({viewport:{width,height:width<=390?690:800},deviceScaleFactor:1,isMobile:width<500,hasTouch:width<500});
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   const r=await page.goto(origin,{waitUntil:'domcontentloaded'});
@@ -27,6 +27,9 @@ try{
   await page.waitForTimeout(1200);
   const visible=await page.evaluate(()=>!!document.querySelector('canvas')||!!document.querySelector('.scene-fallback'));
   assert.ok(visible,'3D canvas or progressive fallback is visible');
+  const heroBounds=await page.locator('.hero-copy h1').boundingBox();
+  assert.ok(heroBounds&&heroBounds.x>=-3&&heroBounds.x+heroBounds.width<=width+4,'hero title fits portrait viewport '+width);
+  assert.ok(await page.locator('.hero-play').count()>0,'Play Now available immediately in hero');
   const jump=async n=>{
    await page.evaluate(index=>{
     const j=document.getElementById('journey'),height=j.offsetHeight-innerHeight;
@@ -34,6 +37,8 @@ try{
    },n);
    await page.waitForTimeout(450);
   };
+  await jump(1.5);
+  assert.ok(await page.locator('.chapter-copy').evaluate(e=>e.classList.contains('visible')),'first product chapter accessible');
   await jump(2.5);
   assert.ok((await page.locator('.chapter-copy h2').textContent()).trim().length>4);
   await jump(5.8);
