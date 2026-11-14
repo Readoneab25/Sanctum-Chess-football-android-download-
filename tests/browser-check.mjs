@@ -41,7 +41,8 @@ try{
   assert.ok(await page.locator('.chapter-copy').evaluate(e=>e.classList.contains('visible')),'first product chapter accessible');
   await jump(2.5);
   assert.ok((await page.locator('.chapter-copy h2').textContent()).trim().length>4);
-  await jump(5.8);
+  await jump(5.93);
+  await page.waitForFunction(()=>!!document.querySelector('.ending-copy'),null,{timeout:3500});
   assert.ok(await page.locator('.ending-copy').count()===1);
   await jump(0);
   assert.ok(await page.locator('.hero-copy').evaluate(e=>e.classList.contains('visible')),'reverse scrolling returns to hero');
