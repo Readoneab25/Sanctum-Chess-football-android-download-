@@ -23,13 +23,15 @@ try{
   assert.equal(r.status(),200);
   await page.locator('.hero-copy h1').waitFor();
   assert.match(await page.title(),/Sanctum Chess Football/);
-  assert.equal(await page.locator('a[href="https://sanctum-chess-football.pages.dev/"]').count()>0,true,'Play now links');
+  assert.equal(await page.locator('a[href="https://sanctum-chess-football.pages.dev/"]').count(),0,'no direct browser game links');
+  assert.equal(await page.locator('a:has-text("PLAY NOW")').count(),0,'no Play Now buttons');
+  assert.equal(await page.locator('.brand-mark img[src="/assets/game-logo.svg"]').count(),1,'official app header logo');
   await page.waitForTimeout(1200);
   const visible=await page.evaluate(()=>!!document.querySelector('canvas')||!!document.querySelector('.scene-fallback'));
   assert.ok(visible,'3D canvas or progressive fallback is visible');
   const heroBounds=await page.locator('.hero-copy h1').boundingBox();
   assert.ok(heroBounds&&heroBounds.x>=-3&&heroBounds.x+heroBounds.width<=width+4,'hero title fits portrait viewport '+width);
-  assert.ok(await page.locator('.hero-play').count()>0,'Play Now available immediately in hero');
+  assert.ok(await page.locator('.hero-play').count()>0,'Android download shortcut available in hero');
   const jump=async n=>{
    await page.evaluate(index=>{
     const j=document.getElementById('journey'),height=j.offsetHeight-innerHeight;
@@ -47,13 +49,17 @@ try{
   await jump(0);
   assert.ok(await page.locator('.hero-copy').evaluate(e=>e.classList.contains('visible')),'reverse scrolling returns to hero');
   await page.locator('a[href="/base.apk"]').first().waitFor({state:'attached'});
+  const copy=await page.locator('.apk-disclosure').textContent();
+  assert.match(copy,/App size: 195 KB/);
+  assert.match(copy,/first time.*internet.*mobile data or Wi-Fi/i);
+  assert.match(copy,/play offline/i);
   const apk=await page.request.get(origin+'/base.apk');
   assert.equal(apk.status(),200,'APK downloadable');
   assert.equal((await apk.body()).byteLength,195273,'APK length');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=4,'no horizontal overflow at '+width+'px: '+overflow);
   assert.deepEqual(errors,[],'no JavaScript errors at '+width+'px');
-  console.log('PASS '+width+'px : 3D, reverse scroll, Play Now, APK, responsive viewport');
+  console.log('PASS '+width+'px : 3D, reverse scroll, download-only CTA, APK, responsive viewport');
   await page.close();
  }
  const reduced=await browser.newPage({viewport:{width:390,height:800},reducedMotion:'reduce'});
