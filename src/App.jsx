@@ -51,7 +51,7 @@ export default function App(){
    onUpdate:self=>{
     let p=self.progress*6;
     progressRef.current=p;
-    const c=Math.min(6,Math.max(0,Math.floor(p+.20)));
+    const c=Math.min(6,Math.max(0,Math.floor(p+.28)));
     setChapter(old=>old===c?old:c);
     journey.style.setProperty('--scroll-progress',self.progress.toFixed(4));
     journey.style.setProperty('--chapter-phase',(p%1).toFixed(4));
