@@ -29,7 +29,7 @@ export default function App(){
  const [apk,setApk]=useState(null);
  const [stageAvailable,setStageAvailable]=useState(true);
  const [isReduced,setIsReduced]=useState(false);
- const [sound,setSound]=useState(false);
+ const [quality,setQuality]=useState('auto');
  useEffect(()=>{
   const mq=window.matchMedia('(prefers-reduced-motion: reduce)');const update=()=>setIsReduced(mq.matches);update();mq.addEventListener?.('change',update);return()=>mq.removeEventListener?.('change',update);
  },[]);
@@ -51,8 +51,10 @@ export default function App(){
    onUpdate:self=>{
     let p=self.progress*6;
     progressRef.current=p;
-    const c=Math.min(6,Math.max(0,Math.floor(p+.22)));
+    const c=Math.min(6,Math.max(0,Math.floor(p+.28)));
     setChapter(old=>old===c?old:c);
+    journey.style.setProperty('--scroll-progress',self.progress.toFixed(4));
+    journey.style.setProperty('--chapter-phase',(p%1).toFixed(4));
    }
   });
   ScrollTrigger.refresh();
@@ -78,9 +80,12 @@ export default function App(){
         <div className="canvas-layer">
           <Suspense fallback={<div className="scene-fallback" role="img" aria-label="Illustrated pitch atmosphere"/>}>
            {stageAvailable&&<Scene3D progressRef={progressRef} reducedMotion={isReduced} onUnavailable={()=>setStageAvailable(false)}/>}
+           {!stageAvailable&&<div className="scene-fallback" role="img" aria-label="Moody football field illustration"/>}
           </Suspense>
           <div className="canvas-vignette"/>
           <div className="noise"/>
+          <div className="field-light field-light-left" aria-hidden="true"/>
+          <div className="field-light field-light-right" aria-hidden="true"/>
         </div>
         <div className="side-rail" aria-label="Scene navigation">
           {Array.from({length:7},(_,i)=><button key={i} type="button" className={chapter===i?'rail-dot current':'rail-dot'} onClick={()=>jump(i)} aria-label={'Go to scene '+(i+1)} aria-current={chapter===i?'step':undefined}><span>{String(i+1).padStart(2,'0')}</span><i/></button>)}
@@ -91,6 +96,7 @@ export default function App(){
           <h1>SANCTUM<br/><em>CHESS</em><br/>FOOTBALL<span className="fullstop">.</span></h1>
           <p>FOOTBALL. THINKING. GLORY.</p>
           <span className="hero-footnote">YOUR PITCH. YOUR RULES. EVERY MOVE MATTERS.</span>
+          <a className="hero-play" href={GAME} target="_blank" rel="noopener noreferrer">ENTER THE GAME <Arrow diagonal/></a>
         </div>
         <div className={'chapter-copy '+(chapter>0?'visible':'hidden')+(chapter===6?' ending-copy':'')} aria-live="polite">
           {title&&<><span className="section-label"><span className="label-line"/>{title.n} / {title.k}</span>
@@ -98,8 +104,9 @@ export default function App(){
            {chapter===6&&<div className="end-actions"><Button href={GAME} external>PLAY NOW</Button>{apk&&<Button href={apk.url} kind="ghost" download>DOWNLOAD APK</Button>}<a href="#features" className="text-link">EXPLORE FEATURES <Arrow/></a></div>}
           </>}
         </div>
+        <div className="chapter-index" aria-hidden="true"><div className="chapter-index-line"/><span>01—07 / THE GAME IN MOTION</span></div>
         <div className="world-bottom">
-          <span className="system-tag"><span className="pulse"/> REAL-TIME 3D SHOWCASE</span>
+          <span className="system-tag"><span className="pulse"/> INTERACTIVE 3D EXPERIENCE</span>
           <span className="scroll-instruction"><span className="scroll-icon">↕</span>{chapter===6?'YOUR MATCH BEGINS BELOW':'SCROLL TO EXPLORE'}</span>
           <span className="system-tag hide-mobile">SCF / EXPERIENCE V2</span>
         </div>
