@@ -24,6 +24,9 @@ jobs:
         run: node tests/camera-check.mjs
       - name: Build production assets
         run: npm run build
+      - name: Verify social image output
+        run: |
+          node --input-type=module -e "import fs from 'node:fs';import assert from 'node:assert/strict';const b=fs.readFileSync('dist/assets/share-card.png');assert.equal(b.toString('hex',0,8),'89504e470d0a1a0a');assert.equal(b.readUInt32BE(16),1200);assert.equal(b.readUInt32BE(20),630);console.log('PASS PNG 1200x630')"
       - name: Install browser runner
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
